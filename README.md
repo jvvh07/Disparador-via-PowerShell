@@ -1,58 +1,86 @@
+# Disparador via PowerShell
 
+![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-5391FE?style=flat-square&logo=powershell&logoColor=white)
+![Platform](https://img.shields.io/badge/Platform-Windows-0078D6?style=flat-square&logo=windows&logoColor=white)
+![Channels](https://img.shields.io/badge/Canais-Chrome%20%7C%20Brave%20%7C%20WhatsApp%20Desktop-25D366?style=flat-square)
 
-__________________________________________________________________________________________
-# Disparador-via-PowerShell
-Script em PowerShell para automação de fila B2B com rotação entre Google Chrome, Brave e WhatsApp Desktop. Lê números de um .txt, envia mensagem automática com intervalo configurável, exibe progresso em tempo real, suporta pausa/retomada/interrupção (P, R, Q) e salva o estado em JSON para retomar sem reprocessar.
+Automação de fila B2B em PowerShell para Windows com rotação Round-Robin entre **Google Chrome**, **Brave Browser** e **WhatsApp Desktop**. Lê contatos de um arquivo `.txt`, normaliza números automaticamente, controla o progresso em tempo real e salva o estado em JSON para evitar reprocessamento.
 
+---
 
-# Disparador B2B via PowerShell (Disparador-Rotativo-3Canais.ps1)
+## Principais Recursos
 
-Script em PowerShell para automação de fila B2B com rotação entre Google Chrome, Brave e WhatsApp Desktop. Lê números de um .txt, envia mensagem automática com intervalo configurável, exibe progresso em tempo real, suporta pausa/retomada/interrupção (P, R, Q) e salva o estado em JSON para retomar sem reprocessar.
+* **Rotação entre 3 canais (Round-Robin):** Alterna sequencialmente entre Chrome (`0`), Brave (`1`) e WhatsApp Desktop (`2`), distribuindo o volume entre três sessões diferentes.
+* **Foco automático de janela:** Utiliza chamadas nativas da API Win32 (`SetForegroundWindow` e `AttachThreadInput`) para trazer o aplicativo da vez para primeiro plano antes de disparar o envio.
+* **Normalização de números:** Limpa caracteres especiais e adiciona o DDI `55` automaticamente para números brasileiros de 10 ou 11 dígitos.
+* **Controles em tempo real:** Permite pausar (`P`), retomar (`R`) ou interromper (`Q`) a fila a qualquer momento pelo teclado.
+* **Recuperação de progresso:** Grava cada envio e falha em `progresso_rotativo.json`, retomando exatamente do ponto onde parou.
 
-## Como funciona na prática
+---
 
-* Leitura e preparação da fila: O script carrega os números de contatos_b2b.txt (um por linha), ignora linhas vazias e permite pular os dois primeiros contatos com -PularDoisPrimeiros se necessário.
-* Rotação entre 3 canais (Round-Robin): A cada contato da fila, o script avança o índice do canal (0 -> Google Chrome, 1 -> Brave Browser, 2 -> WhatsApp Desktop), dividindo os envios entre os três números/sessões abertos no computador.
-* Foco de janela e envio automático: Utiliza chamadas Win32 (SetForegroundWindow / AttachThreadInput e AppActivate) para trazer a janela do canal da vez para frente, navega até a conversa com a mensagem fixa ("Bom dia, tudo bem?") já preenchida e dispara {ENTER} automaticamente.
-* Controle de execução: Durante a contagem regressiva ou entre os itens da fila, aceita comandos no teclado ([P] para pausar, [R] para retomar e [Q] para interromper com segurança).
-* Persistência de estado: Após cada contato processado, grava contadores, histórico e chaves concluídas em progresso_rotativo.json, permitindo retomar exatamente de onde parou.
+## Estrutura do Projeto
 
-## Passo a passo de uso
+```text
+├── Disparador-Rotativo-3Canais.ps1   # Script principal de automação e rotação
+├── contatos_b2b.txt                  # Lista de contatos (um número por linha)
+├── progresso_rotativo.json           # Arquivo gerado automaticamente com o estado da fila
+└── README.md                         # Documentação do repositório
+```
 
-1. Prepare os arquivos na mesma pasta
-   * Salve o script Disparador-Rotativo-3Canais.ps1.
-   * Crie o arquivo contatos_b2b.txt com um telefone por linha (ex.: 5547999999999).
+---
 
-2. Abra e autentique os 3 canais no Windows
-   * Canal 1 (Google Chrome): Abra o WhatsApp Web e faça login no primeiro número.
-   * Canal 2 (Brave Browser): Abra o WhatsApp Web e faça login no segundo número.
-   * Canal 3 (WhatsApp Desktop): Abra o aplicativo nativo do Windows e faça login no terceiro número.
+## Como Usar
 
-3. Libere a execução de scripts no PowerShell (se necessário)
+1. **Prepare a lista de contatos**
+   Adicione um número por linha no arquivo `contatos_b2b.txt`:
+   ```text
+   5547999990001
+   5547999990002
+   5547999990003
+   ```
+
+2. **Deixe os 3 canais abertos e logados**
+   * **Google Chrome:** Aberto na aba do WhatsApp Web (Chip 1)
+   * **Brave Browser:** Aberto na aba do WhatsApp Web (Chip 2)
+   * **WhatsApp Desktop:** Aplicativo nativo aberto e autenticado (Chip 3)
+
+3. **Libere a execução de scripts no PowerShell (apenas na primeira vez)**
    ```powershell
-
-__________________________________________________________________________________________
-
-PowerShell
-.\Disparador-Rotativo-3Canais.ps1
-Quando o terminal pedir, confirme que os 3 canais estão abertos e pressione ENTER.
-
-Acompanhe, pause ou retome a fila
-
-Pressione P para pausar, R para retomar e Q para encerrar salvando o progresso.
-
-Para começar uma nova fila do zero, apague o arquivo progresso_rotativo.json antes de rodar novamente.
    Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+   ```
 
-__________________________________________________________________________________________
-## Parâmetros configuráveis
+4. **Inicie o disparador**
+   ```powershell
+   .\Disparador-Rotativo-3Canais.ps1
+   ```
+   Pressione `ENTER` no terminal quando os 3 canais estiverem prontos.
 
-| Parâmetro | Padrão | Função |
+---
+
+## Parâmetros Configuráveis
+
+| Parâmetro | Padrão | Descrição |
 | :--- | :--- | :--- |
-| -CaminhoContatos | .\contatos_b2b.txt | Caminho do arquivo .txt com a lista de números. |
-| -ArquivoEstado | .\progresso_rotativo.json | Arquivo JSON usado para salvar e recuperar o progresso. |
-| -IntervaloSegundos | 25 | Tempo de espera (em segundos) entre um disparo e o próximo. |
-| -TempoCarregamentoSegundos | 8 | Tempo de espera para a conversa carregar antes de enviar ENTER. |
-| -MensagemFixa | "Bom dia, tudo bem?" | Texto enviado automaticamente para cada contato. |
-| -PularDoisPrimeiros | $false | Ignora os 2 primeiros números da lista original ao montar a fila. |
-__________________________________________________________________________________________
+| `-CaminhoContatos` | `.\contatos_b2b.txt` | Caminho do arquivo `.txt` com a lista de telefones. |
+| `-ArquivoEstado` | `.\progresso_rotativo.json` | Arquivo JSON usado para salvar e recuperar o histórico. |
+| `-IntervaloSegundos` | `25` | Tempo de espera (em segundos) entre cada envio. |
+| `-TempoCarregamentoSegundos` | `8` | Tempo de espera para carregar a conversa antes do disparo. |
+| `-MensagemFixa` | `"Bom dia, tudo bem?"` | Mensagem enviada automaticamente para cada contato. |
+| `-PularDoisPrimeiros` | `$false` | Ignora os 2 primeiros números da lista original. |
+
+### Exemplos de execução
+
+```powershell
+# Alterar intervalo para 45 segundos
+.\Disparador-Rotativo-3Canais.ps1 -IntervaloSegundos 45
+
+# Personalizar a mensagem de abordagem
+.\Disparador-Rotativo-3Canais.ps1 -MensagemFixa "Olá, tudo bem? Podemos conversar rapidamente?"
+
+# Reiniciar a fila do zero
+Remove-Item .\progresso_rotativo.json -ErrorAction SilentlyContinue; .\Disparador-Rotativo-3Canais.ps1
+```
+
+---
+
+> **Aviso:** A automação de interface depende do foco das janelas no Windows e do tempo de resposta da rede. Utilize com responsabilidade e respeitando as políticas de uso do WhatsApp.
